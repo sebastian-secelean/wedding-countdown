@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Countdown</title>
+    <link href="https://fonts.googleapis.com/css2?family=Beth+Ellen&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=La+Belle+Aurore&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #ffffff;
+            --fg: #ffffff;
+            --muted: #b3b3b3;
+            --accent: #4f8cff;
+        }
+
+        body {
+            margin: 0;
+            font: 600 16px/1.4 system-ui, Segoe UI, Roboto, Helvetica, Arial;
+            color: var(--fg);
+            background: var(--bg);
+            display: grid;
+            place-items: center;
+            min-height: 100vh;
+        }
+
+        .wrap {
+            text-align: center;
+            padding: 24px;
+            max-width: 680px;
+        }
+
+        #t {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .b {
+            min-width: 90px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            /* background: #141419; */
+            box-shadow: 0 4px 18px rgba(0, 0, 0, .3);
+        }
+
+        .v {
+            font-size: clamp(24px, 6vw, 44px);
+            font-family: "La Belle Aurore", cursive;
+            color: black;
+            letter-spacing: 1px;
+        }
+
+        .l {
+            font-family: "Beth Ellen", cursive;
+            font-weight: 500;
+            color: var(--muted);
+            margin-top: 4px;
+            font-size: 12px;
+            letter-spacing: .12em;
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="wrap">
+        <div id="t" aria-live="polite"></div>
+    </main>
+
+    <script>
+        // === SET YOUR TARGET (America/Toronto) ===
+        // Format: YYYY-MM-DDTHH:MM:SS with timezone offset if needed.
+        const targetLocal = "2026-09-19T19:00:00"; // change this
+
+        function zonedDate(str, tz) {
+            // Interpret the string in the given IANA zone by building it from parts
+            const dt = new Date(str);
+            // If string lacked zone info, treat as local time of desired zone
+            // and convert to UTC using Intl (keeps things simple for this use case).
+            const fmt = new Intl.DateTimeFormat("en-CA", {
+                timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
+                hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+            });
+            const parts = Object.fromEntries(fmt.formatToParts(dt).map(p => [p.type, p.value]));
+            const iso = `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
+            return new Date(iso + "Z");
+        }
+
+        const TARGET = zonedDate(targetLocal, "America/Toronto");
+        const tEl = document.getElementById("t");
+
+        function pad(n) { return String(n).padStart(2, "0"); }
+        function blocks(d, h, m, s) {
+            return [
+                ["Jours", d], ["Heures", pad(h)], ["Minutes", pad(m)], ["Secondes", pad(s)]
+            ].map(([label, val]) => `<div class="b"><div class="v">${val}</div><div class="l">${label}</div></div>`).join("");
+        }
+
+        function tick() {
+            const now = new Date();
+            let ms = TARGET - now;
+            if (ms < 0) ms = 0;
+            const d = Math.floor(ms / 86400000);
+            const h = Math.floor(ms % 86400000 / 3600000);
+            const m = Math.floor(ms % 3600000 / 60000);
+            const s = Math.floor(ms % 60000 / 1000);
+            tEl.innerHTML = blocks(d, h, m, s);
+            if (ms === 0) clearInterval(int);
+        }
+
+        const int = setInterval(tick, 1000); tick();
+
+        // Simple .ics link (optional)
+        document.getElementById("ical").href =
+            "data:text/calendar;charset=utf-8," + encodeURIComponent(
+                `BEGIN:VCALENDAR
+        VERSION:2.0
+        PRODID:-//Countdown//EN
+        BEGIN:VEVENT
+        UID:${crypto.randomUUID()}
+        DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").split(".")[0]}Z
+        DTSTART:${TARGET.toISOString().replace(/[-:]/g, "").split(".")[0]}Z
+        DTEND:${TARGET.toISOString().replace(/[-:]/g, "").split(".")[0]}Z
+        SUMMARY:Launch
+        END:VEVENT
+        END:VCALENDAR`
+            );
+    </script>
+</body>
+
+</html>
